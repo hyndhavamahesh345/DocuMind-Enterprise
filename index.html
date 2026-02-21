@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuMind Enterprise | AI Corporate Brain</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 1.5rem 2rem;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px border var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .chat-container {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+            padding-right: 1rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 10px;
+        }
+
+        .message {
+            padding: 1.25rem;
+            border-radius: 1rem;
+            max-width: 85%;
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background-color: var(--border-color);
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .ai-message {
+            background-color: var(--panel-bg);
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .citations {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .citation-tag {
+            font-size: 0.75rem;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-color);
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .input-area {
+            width: 100%;
+            margin-top: 2rem;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 1.25rem 4rem 1.25rem 1.5rem;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--accent-color);
+            border: none;
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s;
+        }
+
+        .send-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .loading {
+            display: none;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            align-self: flex-start;
+        }
+
+        .dot-pulse {
+            position: relative;
+            left: -9999px;
+            width: 5px;
+            height: 5px;
+            border-radius: 5px;
+            background-color: var(--accent-color);
+            color: var(--accent-color);
+            box-shadow: 9999px 0 0 0 var(--accent-color);
+            animation: dot-pulse 1.5s infinite linear;
+            margin-left: 20px;
+            display: inline-block;
+        }
+
+        @keyframes dot-pulse {
+            0% { box-shadow: 9999px 0 0 -5px var(--accent-color); }
+            30% { box-shadow: 9999px 0 0 2px var(--accent-color); }
+            60%, 100% { box-shadow: 9999px 0 0 -5px var(--accent-color); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">DocuMind Enterprise</div>
+        <div style="color: var(--text-secondary); font-size: 0.8rem;">Powered by Gemini 1.5 Flash</div>
+    </header>
+
+    <main>
+        <div class="chat-container" id="chat">
+            <div class="message ai-message">
+                Hello! I am your Corporate Brain. You can ask me anything about your company documents (HR, Policies, SOPs).
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="loading" id="loading">AI is thinking <div class="dot-pulse"></div></div>
+            <input type="text" id="queryInput" placeholder="Ask about policies, leave, reimbursements..." onkeypress="handleKey(event)">
+            <button class="send-btn" onclick="askQuestion()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </main>
+
+    <script>
+        const chatContainer = document.getElementById('chat');
+        const input = document.getElementById('queryInput');
+        const loading = document.getElementById('loading');
+
+        async function askQuestion() {
+            const query = input.value.trim();
+            if (!query) return;
+
+            // Add user message
+            addMessage(query, 'user');
+            input.value = '';
+            
+            // Show loading
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch('http://localhost:8000/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: query })
+                });
+
+                const data = await response.json();
+                
+                loading.style.display = 'none';
+                
+                if (data.answer) {
+                    addMessage(data.answer, 'ai', data.sources, data.pages);
+                } else {
+                    addMessage("Sorry, I encountered an error processing that.", 'ai');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                addMessage("Connection error. Make sure the API server is running.", 'ai');
+            }
+        }
+
+        function addMessage(text, type, sources = [], pages = []) {
+            const div = document.createElement('div');
+            div.className = `message ${type}-message`;
+            div.innerText = text;
+
+            if (sources.length > 0) {
+                const citeDiv = document.createElement('div');
+                citeDiv.className = 'citations';
+                
+                // Track unique sources/pages
+                const seen = new Set();
+                sources.forEach((source, i) => {
+                    const filename = source.split('\\').pop().split('/').pop();
+                    const pageNum = Math.floor(pages[i]) + 1;
+                    const key = `${filename}-p${pageNum}`;
+                    
+                    if (!seen.has(key)) {
+                        const tag = document.createElement('span');
+                        tag.className = 'citation-tag';
+                        tag.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> ${filename} (p. ${pageNum})`;
+                        citeDiv.appendChild(tag);
+                        seen.add(key);
+                    }
+                });
+                div.appendChild(citeDiv);
+            }
+
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function handleKey(e) {
+            if (e.key === 'Enter') askQuestion();
+        }
+    </script>
+</body>
+</html>
