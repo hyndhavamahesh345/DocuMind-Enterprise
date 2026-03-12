@@ -21,15 +21,33 @@ def ingest_docs():
 
     pc = Pinecone(api_key=api_key)
 
-    # 2. Check/Create Index (Dimension 768 for Gemini text-embedding-004)
-    if index_name not in [idx.name for idx in pc.list_indexes()]:
-        print(f"INFO: Creating index: {index_name}")
+    # 2. Check/Create Index (Dimension 3072 for gemini-embedding-001)
+    existing_indexes = pc.list_indexes().names()
+    if index_name in existing_indexes:
+        index_desc = pc.describe_index(index_name)
+        if index_desc.dimension != 3072:
+            print(f"WARNING: Dimension mismatch (found {index_desc.dimension}, need 3072). Recreating index...")
+            pc.delete_index(index_name)
+            import time
+            while index_name in pc.list_indexes().names():
+                time.sleep(2)
+            existing_indexes = pc.list_indexes().names()
+
+    if index_name not in existing_indexes:
+        print(f"INFO: Creating index: {index_name}...")
         pc.create_index(
             name=index_name,
-            dimension=768, 
+            dimension=3072, 
             metric="cosine",
             spec=ServerlessSpec(cloud="aws", region="us-east-1")
         )
+
+    # Wait for index to be ready
+    import time
+    print("INFO: Checking index readiness...")
+    while not pc.describe_index(index_name).status['ready']:
+        time.sleep(5)
+    print("SUCCESS: Index is ready!")
 
     # 3. Robust Loading with Unstructured.io
     print("INFO: Loading documents from data/docs using Unstructured...")
@@ -56,13 +74,36 @@ def ingest_docs():
     
     # 5. Embed and Upsert
     print(f"INFO: Uploading {len(chunks)} chunks to Pinecone...")
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     
-    PineconeVectorStore.from_documents(
-        chunks, 
-        embeddings, 
-        index_name=index_name
-    )
+    index = pc.Index(index_name)
+    
+    vectors = []
+    for i, chunk in enumerate(chunks):
+        content = chunk.page_content
+        # Metadata must be a clean dictionary for Pinecone
+        metadata = {
+            "text": content,
+            "source": chunk.metadata.get("source", "Unknown"),
+            "page": chunk.metadata.get("page", 0),
+            "start_index": chunk.metadata.get("start_index", 0)
+        }
+        
+        # Embed the content
+        emb = embeddings.embed_query(content)
+        vectors.append({
+            "id": f"chunk_{i}_{int(time.time())}", 
+            "values": emb, 
+            "metadata": metadata
+        })
+        
+        # Upsert in batches of 50
+        if len(vectors) >= 50:
+            index.upsert(vectors=vectors)
+            vectors = []
+            
+    if vectors:
+        index.upsert(vectors=vectors)
     
     print("SUCCESS: Ingestion complete with robust parsing & Citations!")
 

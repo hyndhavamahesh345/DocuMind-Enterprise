@@ -12,7 +12,7 @@ load_dotenv()
 class RetrievalEngine:
     def __init__(self):
         self.index_name = os.getenv("PINECONE_INDEX_NAME")
-        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
         self.vectorstore = PineconeVectorStore(
             index_name=self.index_name,
             embedding=self.embeddings

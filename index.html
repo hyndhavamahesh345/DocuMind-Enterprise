@@ -48,6 +48,7 @@
             font-weight: 700;
             background: linear-gradient(to right, #38bdf8, #818cf8);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -222,7 +223,19 @@
 <body>
     <header>
         <div class="logo">DocuMind Enterprise</div>
-        <div style="color: var(--text-secondary); font-size: 0.8rem;">Powered by Gemini 1.5 Flash</div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <input type="file" id="fileUpload" style="display: none;" accept=".pdf" onchange="performUpload()">
+            <button class="citation-tag" style="cursor: pointer; background: rgba(56, 189, 248, 0.2);"
+                onclick="document.getElementById('fileUpload').click()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload PDF
+            </button>
+            <div style="color: var(--text-secondary); font-size: 0.8rem;">Powered by Gemini 1.5 Flash</div>
+        </div>
     </header>
 
     <main>
@@ -350,6 +363,37 @@
                 }
             });
             parentDiv.appendChild(citeDiv);
+        }
+
+        async function performUpload() {
+            const fileInput = document.getElementById('fileUpload');
+            if (fileInput.files.length === 0) return;
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            loading.style.display = 'block';
+            addMessage(`Uploading ${file.name}...`, 'ai');
+
+            try {
+                const response = await fetch('http://localhost:8000/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                loading.style.display = 'none';
+
+                if (response.ok) {
+                    addMessage(`Success: ${data.message}. You can now ask questions about it.`, 'ai');
+                } else {
+                    addMessage(`Error: ${data.detail}`, 'ai');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                addMessage("Upload failed. Verify server connection.", 'ai');
+            }
         }
 
         function handleKey(e) {
