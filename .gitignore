@@ -1,7 +1,20 @@
+# Environment
 .env
-__pycache__/
-*.pyc
-.ipynb_checkpoints/
-venv/
+.venv
 env/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
 .vscode/
+.idea/
+
+# DocuMind Artifacts
+hidden_check.txt
+files.txt
+data/docs/*.pdf
+!data/docs/HR_Policy_2024.pdf
