@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,7 @@
     <style>
         :root {
             --bg-color: #0f172a;
-            --panel-bg: #1e293b;
+            --panel-bg: rgba(30, 41, 59, 0.7);
             --accent-color: #38bdf8;
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
@@ -92,8 +93,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .user-message {
@@ -195,12 +203,22 @@
         }
 
         @keyframes dot-pulse {
-            0% { box-shadow: 9999px 0 0 -5px var(--accent-color); }
-            30% { box-shadow: 9999px 0 0 2px var(--accent-color); }
-            60%, 100% { box-shadow: 9999px 0 0 -5px var(--accent-color); }
+            0% {
+                box-shadow: 9999px 0 0 -5px var(--accent-color);
+            }
+
+            30% {
+                box-shadow: 9999px 0 0 2px var(--accent-color);
+            }
+
+            60%,
+            100% {
+                box-shadow: 9999px 0 0 -5px var(--accent-color);
+            }
         }
     </style>
 </head>
+
 <body>
     <header>
         <div class="logo">DocuMind Enterprise</div>
@@ -210,15 +228,22 @@
     <main>
         <div class="chat-container" id="chat">
             <div class="message ai-message">
-                Hello! I am your Corporate Brain. You can ask me anything about your company documents (HR, Policies, SOPs).
+                Hello! I am your Corporate Brain. You can ask me anything about your company documents (HR, Policies,
+                SOPs).
             </div>
         </div>
 
         <div class="input-area">
-            <div class="loading" id="loading">AI is thinking <div class="dot-pulse"></div></div>
-            <input type="text" id="queryInput" placeholder="Ask about policies, leave, reimbursements..." onkeypress="handleKey(event)">
+            <div class="loading" id="loading">AI is thinking <div class="dot-pulse"></div>
+            </div>
+            <input type="text" id="queryInput" placeholder="Ask about policies, leave, reimbursements..."
+                onkeypress="handleKey(event)">
             <button class="send-btn" onclick="askQuestion()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
             </button>
         </div>
     </main>
@@ -236,7 +261,7 @@
             // Add user message
             addMessage(query, 'user');
             input.value = '';
-            
+
             // Show loading
             loading.style.display = 'block';
 
@@ -249,7 +274,7 @@
                 const response = await fetch('http://localhost:8000/query', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         question: query,
                         history: chatHistory
                     })
@@ -265,15 +290,15 @@
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
+
                     const chunk = decoder.decode(value, { stream: true });
-                    
+
                     // Check if chunk contains SOURCES:
                     if (chunk.includes('\n\nSOURCES:')) {
                         const [answerPart, rawSources] = chunk.split('\n\nSOURCES: ');
                         fullAnswer += answerPart;
                         aiMessageDiv.innerText = fullAnswer; // Update answer text
-                        
+
                         try {
                             const sourceData = JSON.parse(rawSources.trim());
                             addCitations(aiMessageDiv, sourceData.sources, sourceData.pages);
@@ -282,7 +307,7 @@
                         fullAnswer += chunk;
                         aiMessageDiv.innerText = fullAnswer; // Typewriter effect
                     }
-                    
+
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
 
@@ -309,13 +334,13 @@
             if (sources.length === 0) return;
             const citeDiv = document.createElement('div');
             citeDiv.className = 'citations';
-            
+
             const seen = new Set();
             sources.forEach((source, i) => {
                 const filename = source.split(/[\\/]/).pop();
                 const pageNum = (pages[i] || 0) + 1;
                 const key = `${filename}-p${pageNum}`;
-                
+
                 if (!seen.has(key)) {
                     const tag = document.createElement('span');
                     tag.className = 'citation-tag';
@@ -332,4 +357,5 @@
         }
     </script>
 </body>
+
 </html>
