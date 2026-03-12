@@ -48,6 +48,14 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "DocuMind-API"}
 
+@app.get("/documents")
+async def list_documents():
+    docs_dir = "data/docs"
+    if not os.path.exists(docs_dir):
+        return {"documents": []}
+    files = [f for f in os.listdir(docs_dir) if f.endswith('.pdf')]
+    return {"documents": files}
+
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
     if not file.filename.endswith('.pdf'):
@@ -69,15 +77,15 @@ async def upload_document(file: UploadFile = File(...)):
 
 @app.post("/query")
 @limiter.limit("5/minute")
-async def ask_question(request: QueryRequest, req: Request):
+async def ask_question(payload: QueryRequest, request: Request):
     """
     Streaming endpoint for the 'Typewriter effect'.
     """
     async def event_generator():
         # Convert Pydantic models to dicts for the engine
-        chat_history = [m.model_dump() for m in request.history]
+        chat_history = [m.model_dump() for m in payload.history]
         
-        for token in engine.get_streaming_response(request.question, chat_history):
+        for token in engine.get_streaming_response(payload.question, chat_history):
             yield token
 
         # Yield sources at the end

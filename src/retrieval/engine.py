@@ -17,7 +17,7 @@ class RetrievalEngine:
             index_name=self.index_name,
             embedding=self.embeddings
         )
-        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0, streaming=True)
+        self.llm = ChatGoogleGenerativeAI(model="models/gemini-flash-latest", temperature=0, streaming=True)
         self._setup_chains()
 
     def _setup_chains(self):
@@ -67,12 +67,15 @@ class RetrievalEngine:
             role = "human" if msg["role"] == "user" else "assistant"
             history.append((role, msg["content"]))
 
-        for chunk in self.rag_chain.stream({"input": query, "chat_history": history}):
-            if "answer" in chunk:
-                yield chunk["answer"]
-            elif "context" in chunk:
-                # Store context for citations if needed after stream
-                self.last_context = chunk["context"]
+        try:
+            for chunk in self.rag_chain.stream({"input": query, "chat_history": history}):
+                if "answer" in chunk:
+                    yield chunk["answer"]
+                elif "context" in chunk:
+                    self.last_context = chunk["context"]
+        except Exception as e:
+            print(f"ENGINE ERROR: {str(e)}")
+            yield f"Error in engine: {str(e)}"
 
     def get_query_response(self, query: str, chat_history: List = []):
         # Fallback for non-streaming
