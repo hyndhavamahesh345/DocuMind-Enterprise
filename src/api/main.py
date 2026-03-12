@@ -39,6 +39,10 @@ class QueryRequest(BaseModel):
 async def root():
     return {"message": "DocuMind Enterprise API Online"}
 
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "DocuMind-API"}
+
 @app.post("/query")
 @limiter.limit("5/minute")
 async def ask_question(request: QueryRequest, req: Request):
