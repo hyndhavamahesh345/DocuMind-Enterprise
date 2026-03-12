@@ -1,54 +1,79 @@
 import os
+from typing import List, Dict, Any
 from dotenv import load_dotenv
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_pinecone import PineconeVectorStore
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
 
 load_dotenv()
 
 class RetrievalEngine:
     def __init__(self):
         self.index_name = os.getenv("PINECONE_INDEX_NAME")
-        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
         self.vectorstore = PineconeVectorStore(
             index_name=self.index_name,
             embedding=self.embeddings
         )
-        # Using Gemini 1.5 Flash - fast and usually free tier friendly
-        self.llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0)
+        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0, streaming=True)
+        self._setup_chains()
 
-    def get_query_response(self, query: str):
-        # Strict Prompting to prevent hallucinations
-        system_prompt = (
-            "You are a Corporate Brain assistant for question-answering tasks. "
-            "Use the following pieces of retrieved context to answer "
-            "the question. If you don't know the answer, say that you "
-            "don't know. Use three sentences maximum and keep the "
-            "answer concise. If the answer is not in the context, strictly "
-            "say 'This is outside my scope.'\n\n"
-            "Context: {context}"
+    def _setup_chains(self):
+        # 1. History-Aware Retriever
+        contextualize_q_system_prompt = (
+            "Given a chat history and the latest user question "
+            "which might reference context in the chat history, "
+            "formulate a standalone question which can be understood "
+            "without the chat history. Do NOT answer the question, "
+            "just reformulate it if needed and otherwise return it as is."
         )
-        
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
+        contextualize_q_prompt = ChatPromptTemplate.from_messages([
+            ("system", contextualize_q_system_prompt),
+            MessagesPlaceholder("chat_history"),
             ("human", "{input}"),
         ])
-
-        # LCEL Implementation
-        def format_docs(docs):
-            return "\n\n".join(doc.page_content for doc in docs)
-
-        rag_chain = (
-            {"context": self.vectorstore.as_retriever() | format_docs, "input": RunnablePassthrough()}
-            | prompt
-            | self.llm
-            | StrOutputParser()
+        
+        retriever = self.vectorstore.as_retriever(search_kwargs={"k": 5})
+        self.history_aware_retriever = create_history_aware_retriever(
+            self.llm, retriever, contextualize_q_prompt
         )
 
-        # To keep citations, we need the context docs
-        context_docs = self.vectorstore.as_retriever().invoke(query)
-        answer = rag_chain.invoke(query)
+        # 2. QA Chain with Citations
+        qa_system_prompt = (
+            "You are DocuMind, a Corporate Brain assistant. "
+            "Use the retrieved context to answer the question accurately. "
+            "Maintain page-level citations if provided. "
+            "If the answer is not in the context, strictly say: 'This is outside my scope.'\n"
+            "Context: {context}"
+        )
+        qa_prompt = ChatPromptTemplate.from_messages([
+            ("system", qa_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ])
         
-        return {"answer": answer, "context": context_docs}
+        question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
+        self.rag_chain = create_retrieval_chain(self.history_aware_retriever, question_answer_chain)
+
+    def get_streaming_response(self, query: str, chat_history: List[Dict[str, str]] = []):
+        """
+        Yields tokens for streaming and finally yields the context for citations.
+        """
+        # Convert dict history to LangChain messages if needed (simplified here for speed)
+        history = []
+        for msg in chat_history:
+            role = "human" if msg["role"] == "user" else "assistant"
+            history.append((role, msg["content"]))
+
+        for chunk in self.rag_chain.stream({"input": query, "chat_history": history}):
+            if "answer" in chunk:
+                yield chunk["answer"]
+            elif "context" in chunk:
+                # Store context for citations if needed after stream
+                self.last_context = chunk["context"]
+
+    def get_query_response(self, query: str, chat_history: List = []):
+        # Fallback for non-streaming
+        return self.rag_chain.invoke({"input": query, "chat_history": chat_history})
