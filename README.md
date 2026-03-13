@@ -1,5 +1,6 @@
 # DocuMind Enterprise
 
+![DocuMind Enterprise Mockup](C:/Users/nirjo/.gemini/antigravity/brain/9dfe82a4-50de-494e-9279-5e6c620ac351/documind_enterprise_mockup_1773407369958.png)
 
 ![DocuMind Banner](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge) ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi) ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain) ![Pinecone](https://img.shields.io/badge/Pinecone-000000?style=for-the-badge&logo=pinecone) ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai)
 
